@@ -1,9 +1,11 @@
 #include <unistd.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
 char DEFAULT_SHELL[] = "/bin/sh";
+char SG_PATH[] = "/usr/bin/sg";
 char * DEFAULT_ARGV[] = {DEFAULT_SHELL,NULL};
 
 int main(int argc, char ** argv)
@@ -16,10 +18,12 @@ int main(int argc, char ** argv)
 	int statret;
 	int retval;
 	char cmdbuffer[4096];
+	char ** newargv;
 	
 	user_uid = getuid();
 	effective_uid = geteuid();
 
+	statret = -1;
 	if(user_uid != effective_uid && effective_uid == 0) {
 		/* Elevate privileges */
 		user_gid = getgid();
@@ -56,10 +60,10 @@ int main(int argc, char ** argv)
 			if(retval!=0) {
 				perror("usermod");
 			}
+		/*
 		} else {
-			if(statret!=0) {
-				perror("stat");
-			}
+			perror("stat");
+		*/
 		}
 		
 		/* Drop privileges */
@@ -70,7 +74,16 @@ int main(int argc, char ** argv)
 	}
 	
 	if(argc > 1) {
-		execv(argv[1], argv + 1);
+		if(statret == 0) {
+			newargv = malloc(sizeof(char*)*(argc+2));
+			newargv[argc+1] = NULL;
+			memcpy(newargv+2, argv+1, sizeof(char*)*(argc-1));
+			newargv[0] = SG_PATH;
+			newargv[1] = "dyndocker";
+			execv(SG_PATH, newargv);
+		} else {
+			execv(argv[1], argv + 1);
+		}
 	} else {
 		execv(DEFAULT_SHELL, DEFAULT_ARGV);
 	}
