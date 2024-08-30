@@ -19,6 +19,9 @@ int main(int argc, char ** argv)
 	int retval;
 	char cmdbuffer[4096];
 	char ** newargv;
+	char * pathval;
+	char * pathtoken;
+	char * pathexe;
 	
 	user_uid = getuid();
 	effective_uid = geteuid();
@@ -76,14 +79,41 @@ int main(int argc, char ** argv)
 	if(argc > 1) {
 		if(statret == 0) {
 			newargv = malloc(sizeof(char*)*(argc+2));
-			newargv[argc+1] = NULL;
 			memcpy(newargv+2, argv+1, sizeof(char*)*(argc-1));
+			newargv[argc+1] = NULL;
 			newargv[0] = SG_PATH;
 			newargv[1] = "dyndocker";
 			execv(SG_PATH, newargv);
 			perror("QUACK dyndocker!");
 		} else {
-			execv(argv[1], argv + 1);
+			/*
+			 *  Check whether it is reachable
+			 */
+			statret = stat(argv[1], &statbuf);
+			if(statret == 0) {
+				pathexe = argv[1];
+			} else {
+				pathexe = NULL;
+				/* Now, iterate over PATH */
+				pathval=getenv("PATH");
+				if(pathval != NULL) {
+					for(pathtoken=strtok(pathval, ":"); pathtoken; pathtoken=strtok(pathval, ":")) {
+						snprintf(cmdbuffer, sizeof(cmdbuffer), "%s/%s", pathtoken, argv[1]);
+						statret = stat(cmdbuffer, &statbuf);
+						if(statret == 0) {
+							pathexe = cmdbuffer;
+							break;
+						}
+					}
+				}
+			}
+			if(pathexe!=NULL) {
+				newargv = malloc(sizeof(char*)*argc);
+				memcpy(newargv, argv + 1, sizeof(char*)*(argc-1));
+				newargv[argc-1] = NULL;
+				newargv[0] = pathexe;
+				execv(pathexe, newargv);
+			}
 			
 			perror("QUACK exec!");
 			while (*argv != NULL) {
