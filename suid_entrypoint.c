@@ -85,19 +85,23 @@ int main(int argc, char ** argv)
 			newargv[1] = "dyndocker";
 			execv(SG_PATH, newargv);
 			perror("QUACK dyndocker!");
+			while (*newargv != NULL) {
+			    printf("SEE %s\n", *newargv);
+			    newargv++;
+			}
 		} else {
 			/*
 			 *  Check whether it is reachable
 			 */
 			statret = stat(argv[1], &statbuf);
+			pathexe = NULL;
 			if(statret == 0) {
 				pathexe = argv[1];
-			} else {
-				pathexe = NULL;
+			} else if(argv[1][0] != '/') {
 				/* Now, iterate over PATH */
 				pathval=getenv("PATH");
 				if(pathval != NULL) {
-					for(pathtoken=strtok(pathval, ":"); pathtoken; pathtoken=strtok(pathval, ":")) {
+					for(pathtoken=strtok(pathval, ":"); pathtoken; pathtoken=strtok(NULL, ":")) {
 						snprintf(cmdbuffer, sizeof(cmdbuffer), "%s/%s", pathtoken, argv[1]);
 						statret = stat(cmdbuffer, &statbuf);
 						if(statret == 0) {
@@ -116,6 +120,8 @@ int main(int argc, char ** argv)
 			}
 			
 			perror("QUACK exec!");
+			/* Skip this one */
+			argv++;
 			while (*argv != NULL) {
 			    printf("SEE %s\n", *argv);
 			    argv++;
