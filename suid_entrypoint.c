@@ -84,7 +84,12 @@ int main(int argc, char ** argv)
 			perror("QUACK dyndocker!");
 		} else {
 			execv(argv[1], argv + 1);
+			
 			perror("QUACK exec!");
+			while (*argv != NULL) {
+			    printf("SEE %s\n", *argv);
+			    argv++;
+			}
 		}
 	} else {
 		execv(DEFAULT_SHELL, DEFAULT_ARGV);
