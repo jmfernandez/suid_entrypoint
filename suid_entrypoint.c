@@ -81,12 +81,14 @@ int main(int argc, char ** argv)
 			newargv[0] = SG_PATH;
 			newargv[1] = "dyndocker";
 			execv(SG_PATH, newargv);
+			perror("QUACK dyndocker!");
 		} else {
 			execv(argv[1], argv + 1);
+			perror("QUACK exec!");
 		}
 	} else {
 		execv(DEFAULT_SHELL, DEFAULT_ARGV);
+		perror("QUACK default!");
 	}
-	perror("QUACK!");
 	return 1;
 }
