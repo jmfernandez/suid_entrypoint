@@ -101,6 +101,7 @@ int main(int argc, char ** argv)
 				/* Now, iterate over PATH */
 				pathval=getenv("PATH");
 				if(pathval != NULL) {
+					pathval = strdup(pathval);
 					for(pathtoken=strtok(pathval, ":"); pathtoken; pathtoken=strtok(NULL, ":")) {
 						snprintf(cmdbuffer, sizeof(cmdbuffer), "%s/%s", pathtoken, argv[1]);
 						statret = stat(cmdbuffer, &statbuf);
@@ -109,6 +110,7 @@ int main(int argc, char ** argv)
 							break;
 						}
 					}
+					free(pathval);
 				}
 			}
 			if(pathexe!=NULL) {
