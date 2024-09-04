@@ -8,6 +8,77 @@ char DEFAULT_SHELL[] = "/bin/sh";
 char SG_PATH[] = "/usr/bin/sg";
 char * DEFAULT_ARGV[] = {DEFAULT_SHELL,NULL};
 
+char ESCAPED_QUOTE[] = "\\'";
+
+char * shellescapeargv(char **argv) {
+	size_t retbufsize = 1;
+	size_t ESCAPED_QUOTE_len = sizeof(ESCAPED_QUOTE) - 1;
+	size_t copysize;
+	char * param;
+	char * nextparam;
+	char ** scanargv = argv;
+	char * escaped;
+	char * retescaped;
+	
+	/* First, compute the size beforehand */
+	while (*scanargv != NULL) {
+		param = *scanargv;
+		/* Size of the param */
+		retbufsize += strlen(param);
+		
+		/* One byte for each needed space to separate params */
+		if(argv!=scanargv) {
+			retbufsize += 1;
+		}
+		
+		/* All the escaped single quotes */
+		while((param = strchr(param, '\''))!= NULL) {
+			retbufsize += ESCAPED_QUOTE_len - 1;
+			/* Skip the found single quote */
+			param++;
+		}
+		scanargv++;
+	}
+
+	/* Reserve the memory block */
+	retescaped = (char *)malloc(retbufsize);
+	retescaped[retbufsize-1] = '\0';
+	escaped = retescaped;
+
+	/* And now fill it in */
+	scanargv = argv;
+	while (*scanargv != NULL) {
+		/* One byte for each needed space to separate params */
+		if(argv!=scanargv) {
+			escaped[0] = ' ';
+			escaped++;
+		}
+
+		param = *scanargv;
+		
+		/* All the escaped single quotes */
+		while((nextparam = strchr(param, '\''))!= NULL) {
+			copysize = nextparam - param;
+			if (copysize > 0) {
+				memcpy(escaped, param, copysize);
+				escaped += copysize;
+			}
+			memcpy(escaped, ESCAPED_QUOTE, ESCAPED_QUOTE_len);
+			escaped += ESCAPED_QUOTE_len;
+			param = nextparam + 1;
+		}
+		/* And the rest */
+		copysize = strlen(param);
+		if(copysize > 0) {
+			memcpy(escaped, param, copysize);
+			escaped += copysize;
+		}
+		scanargv++;
+	}
+
+	return retescaped;
+}
+
 int main(int argc, char ** argv)
 {
 	uid_t user_uid;
@@ -78,11 +149,11 @@ int main(int argc, char ** argv)
 	
 	if(argc > 1) {
 		if(statret == 0) {
-			newargv = malloc(sizeof(char*)*(argc+2));
-			memcpy(newargv+2, argv+1, sizeof(char*)*(argc-1));
-			newargv[argc+1] = NULL;
+			newargv = malloc(sizeof(char*)*4);
 			newargv[0] = SG_PATH;
 			newargv[1] = "dyndocker";
+			newargv[2] = shellescapeargv(argv+1);
+			newargv[3] = NULL;
 			execv(SG_PATH, newargv);
 			perror("QUACK dyndocker!");
 			while (*newargv != NULL) {

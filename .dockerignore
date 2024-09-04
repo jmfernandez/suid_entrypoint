@@ -1,0 +1,3 @@
+suid_entrypoint
+suid_entrypoint.o
+suid_entrypoint_static
